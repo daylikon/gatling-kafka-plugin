@@ -26,7 +26,7 @@ class KafkaGatlingTest extends Simulation {
   implicit val ingredientHeaders: Headers                   = new RecordHeaders()
 
   val kafkaConf: KafkaProtocol = kafka
-    .topic("test.t")
+    .topic("test.t1")
     .properties(
       Map(
         ProducerConfig.ACKS_CONFIG                   -> "1",
@@ -36,8 +36,19 @@ class KafkaGatlingTest extends Simulation {
       ),
     )
 
+  val kafkaConfSimple: KafkaProtocol = kafka
+    .topic("test.t4")
+    .properties(
+      Map(
+        ProducerConfig.ACKS_CONFIG -> "1",
+        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG -> "localhost:9093",
+        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringSerializer",
+        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringSerializer",
+      ),
+    )
+
   val kafkaConfBytes: KafkaProtocol = kafka
-    .topic("test.t")
+    .topic("test.t2")
     .properties(
       Map(
         ProducerConfig.ACKS_CONFIG                   -> "1",
@@ -77,11 +88,11 @@ class KafkaGatlingTest extends Simulation {
         "bootstrap.servers" -> "localhost:9093",
       ),
     )
-    .timeout(5.seconds)
+    .timeout(15.seconds)
     .matchByValue
 
   val kafkaAvro4sConf: KafkaProtocol = kafka
-    .topic("test.t")
+    .topic("test.t3")
     .properties(
       Map(
         ProducerConfig.ACKS_CONFIG                   -> "1",
@@ -113,24 +124,26 @@ class KafkaGatlingTest extends Simulation {
         "bootstrap.servers" -> "localhost:9093",
       ),
     )
-    .timeout(5.seconds)
+    .timeout(15.seconds)
     .matchByMessage(matchByOwnVal)
 
   val scnRR: ScenarioBuilder = scenario("RequestReply String")
     .exec(
       kafka("Request Reply String").requestReply
-        .requestTopic("myTopic")
-        .replyTopic("test.t")
+        .requestTopic("myTopic1")
+        .replyTopic("test.t1")
         .send[String, String]("testCheckJson", """{ "m": "dkf" }""")
         .check(jsonPath("$.m").is("dkf")),
     )
 
-  val scn: ScenarioBuilder = scenario("Request String")
+  val scn1: ScenarioBuilder = scenario("Request String Simple")
     .exec(
       kafka("Request String")
         .send[String]("foo"),
     )
-    .exec(kafka("Request String 2").send[String, String]("testCheckJson", """{ "m": "dkf" }"""))
+
+  val scn: ScenarioBuilder = scenario("Request String with key")
+    .exec(kafka("Request String").send[String, String]("testCheckJson", """{ "m": "dkf" }"""))
 
   val scn2: ScenarioBuilder = scenario("Request Byte")
     .exec(
@@ -141,8 +154,8 @@ class KafkaGatlingTest extends Simulation {
   val scnRR2: ScenarioBuilder = scenario("RequestReply Bytes")
     .exec(
       kafka("Request Reply Bytes").requestReply
-        .requestTopic("myTopic")
-        .replyTopic("test.t")
+        .requestTopic("myTopic2")
+        .replyTopic("test.t2")
         .send[Array[Byte], Array[Byte]]("test".getBytes(), "tstBytes".getBytes()),
     )
 
@@ -159,16 +172,17 @@ class KafkaGatlingTest extends Simulation {
   val scnRRwo: ScenarioBuilder = scenario("RequestReply w/o answer")
     .exec(
       kafka("Request Reply Bytes").requestReply
-        .requestTopic("myTopic")
-        .replyTopic("test.t")
+        .requestTopic("myTopic2")
+        .replyTopic("test.t2")
         .send[Array[Byte], Array[Byte]]("testWO".getBytes(), "tstBytesWO".getBytes()),
     )
 
   setUp(
     scnRR.inject(atOnceUsers(1)).protocols(kafkaProtocolRRString),
-    scn.inject(nothingFor(1), atOnceUsers(1)).protocols(kafkaConf),
+    scn.inject(nothingFor(3), atOnceUsers(1)).protocols(kafkaConf),
+    scn1.inject(nothingFor(5), atOnceUsers(1)).protocols(kafkaConfSimple),
     scnRR2.inject(atOnceUsers(1)).protocols(kafkaProtocolRRBytes),
-    scn2.inject(nothingFor(1), atOnceUsers(1)).protocols(kafkaConfBytes),
+    scn2.inject(nothingFor(3), atOnceUsers(1)).protocols(kafkaConfBytes),
     scnAvro4s.inject(atOnceUsers(1)).protocols(kafkaAvro4sConf),
     scnRRwo.inject(atOnceUsers(1)).protocols(kafkaProtocolRRBytes),
   ).assertions(
