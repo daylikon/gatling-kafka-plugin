@@ -155,8 +155,12 @@ class KafkaGatlingTest extends Simulation {
 
   val scnwokey: ScenarioBuilder = scenario("Request String without key")
     .exec(
-      kafka("Request String")
+      kafka("Request String without headers")
         .send[String]("foo"),
+    )
+    .exec(
+      kafka("Request String with headers")
+        .send[String]("foo", new RecordHeaders().add("test-header", "test_value".getBytes())),
     )
 
   val scn: ScenarioBuilder = scenario("Request String")

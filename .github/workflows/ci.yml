@@ -57,6 +57,9 @@ jobs:
 
       - name: Test Release
         run: sbt clean scalafmtCheckAll scalafmtSbtCheck compile coverage "Gatling / testOnly ru.tinkoff.gatling.kafka.examples.KafkaGatlingTest" test coverageOff
+
+      - name: Test Javaapi Simple Methods
+        run: sbt clean scalafmtCheckAll scalafmtSbtCheck compile "Gatling / testOnly ru.tinkoff.gatling.kafka.examples.KafkaJavaapiMethodsGatlingTest"
         
       - name: Coverage Report
         run: sbt coverageReport

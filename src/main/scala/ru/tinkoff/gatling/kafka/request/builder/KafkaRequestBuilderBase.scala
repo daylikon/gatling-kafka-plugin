@@ -22,6 +22,9 @@ case class KafkaRequestBuilderBase(requestName: Expression[String]) {
   def send[V](payload: Expression[V])(implicit sender: Sender[Nothing, V]): RequestBuilder[_, V] =
     sender.send(requestName, None, payload)
 
+  def send[V](payload: Expression[V], headers: Expression[Headers])(implicit sender: Sender[Nothing, V]): RequestBuilder[_, V] =
+    sender.send(requestName, None, payload, Some(headers))
+
   def requestReply: ReqRepBase.type = ReqRepBase
 
   object ReqRepBase {
